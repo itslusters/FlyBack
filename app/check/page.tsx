@@ -291,14 +291,15 @@ function ManualEntry({ iata, date }: { iata: string; date: string }) {
 
 function ResultInner() {
   const params  = useSearchParams()
-  const iata    = params.get('flight') ?? 'KE907'
+  const iata    = params.get('flight') ?? ''   // 빈 문자열 → 검색 폼 표시
   const date    = params.get('date')   ?? new Date().toISOString().slice(0, 10)
 
   const [flight,  setFlight]  = useState<FlightResult | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(!!iata)   // iata 없으면 로딩 스킵
   const [error,   setError]   = useState<string | null>(null)
 
   useEffect(() => {
+    if (!iata) return   // 파라미터 없으면 검색 폼으로 이동
     setLoading(true)
     setError(null)
     fetch(`/api/flight?iata=${encodeURIComponent(iata)}&date=${encodeURIComponent(date)}`)
@@ -310,6 +311,9 @@ function ResultInner() {
       .catch(e => setError(String(e.message ?? 'Unknown error')))
       .finally(() => setLoading(false))
   }, [iata, date])
+
+  // ── 파라미터 없음 → 빈 검색 폼 ──
+  if (!iata) return <ManualEntry iata="" date={date} />
 
   // ── Loading ──
   if (loading) {

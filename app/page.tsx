@@ -24,10 +24,11 @@
  *   top edge: horizontal gradient highlight line
  */
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { motion, useInView, AnimatePresence } from 'framer-motion'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { createBrowserClient } from '@supabase/ssr'
 import {
   Plane, Search, Calendar, ArrowRight, ChevronDown,
   CheckCircle, Shield, Globe, Lock, Zap, Award,
@@ -415,6 +416,22 @@ function Faq({ q, a }: { q: string; a: string }) {
 // ─── PAGE ─────────────────────────────────────────────────────────────────────
 
 export default function Page() {
+  const [userEmail, setUserEmail] = useState<string | null>(null)
+
+  useEffect(() => {
+    const supabase = createBrowserClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    )
+    supabase.auth.getUser().then(({ data }) => {
+      setUserEmail(data.user?.email ?? null)
+    })
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
+      setUserEmail(session?.user?.email ?? null)
+    })
+    return () => subscription.unsubscribe()
+  }, [])
+
   return (
     <div className="min-h-screen bg-[#08090a] text-[#f7f8f8]">
 
@@ -445,13 +462,25 @@ export default function Page() {
 
           {/* Right actions */}
           <div className="flex items-center gap-3">
-            <Link href="/login"
-              className="hidden text-[16px] leading-[24px] text-[#8a8f98] transition-colors hover:text-[#f7f8f8] sm:block"
-            >Log in</Link>
-            {/* Primary button: white bg, dark text — Linear convention */}
-            <Link href="/check"
-              className="flex items-center gap-1.5 rounded-full bg-[#f7f8f8] px-[14px] py-[6px] text-[13px] leading-[19.5px] text-[#08090a] transition-opacity hover:opacity-90"
-            >Get started</Link>
+            {userEmail ? (
+              <>
+                <Link href="/status"
+                  className="hidden text-[14px] leading-[21px] text-[#8a8f98] transition-colors hover:text-[#f7f8f8] sm:block"
+                >{userEmail}</Link>
+                <Link href="/status"
+                  className="flex items-center gap-1.5 rounded-full bg-[#f7f8f8] px-[14px] py-[6px] text-[13px] leading-[19.5px] text-[#08090a] transition-opacity hover:opacity-90"
+                >My claims</Link>
+              </>
+            ) : (
+              <>
+                <Link href="/login"
+                  className="hidden text-[16px] leading-[24px] text-[#8a8f98] transition-colors hover:text-[#f7f8f8] sm:block"
+                >Log in</Link>
+                <Link href="/check"
+                  className="flex items-center gap-1.5 rounded-full bg-[#f7f8f8] px-[14px] py-[6px] text-[13px] leading-[19.5px] text-[#08090a] transition-opacity hover:opacity-90"
+                >Get started</Link>
+              </>
+            )}
           </div>
         </nav>
       </header>
@@ -813,9 +842,11 @@ export default function Page() {
             <Link href="/check"
               className="flex items-center gap-1.5 rounded-full bg-[#f7f8f8] px-[18px] py-[9px] text-[13px] leading-[19.5px] text-[#08090a] transition-opacity hover:opacity-90"
             >Check my flight <ArrowRight className="h-3.5 w-3.5" /></Link>
-            <Link href="/login"
-              className="flex items-center gap-1.5 rounded-full border border-white/[0.1] px-[18px] py-[9px] text-[13px] leading-[19.5px] text-[#8a8f98] transition-colors hover:border-white/[0.18] hover:text-[#f7f8f8]"
-            >Sign in</Link>
+            {!userEmail && (
+              <Link href="/login"
+                className="flex items-center gap-1.5 rounded-full border border-white/[0.1] px-[18px] py-[9px] text-[13px] leading-[19.5px] text-[#8a8f98] transition-colors hover:border-white/[0.18] hover:text-[#f7f8f8]"
+              >Sign in</Link>
+            )}
           </Reveal>
         </div>
       </section>

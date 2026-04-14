@@ -242,11 +242,11 @@ export default function StatusClient({ claims, userEmail }: Props) {
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}
             className="rounded-[10px] border border-white/[0.05] bg-[#0c0d10] px-[28px] py-[48px] text-center">
             <Plane className="mx-auto mb-4 h-8 w-8 text-[#8a8f98]" />
-            <p className="text-[16px] font-[590] text-[#f7f8f8]">클레임이 없습니다</p>
-            <p className="mt-2 text-[13px] text-[#8a8f98]">항공편 지연이나 취소가 있었다면 지금 바로 신청해보세요.</p>
+            <p className="text-[16px] font-[590] text-[#f7f8f8]">No claims yet</p>
+            <p className="mt-2 text-[13px] text-[#8a8f98]">Had a delayed or cancelled flight? Start your claim now.</p>
             <Link href="/check"
               className="mt-6 inline-flex items-center gap-1.5 rounded-full bg-[#f7f8f8] px-[18px] py-[9px] text-[13px] text-[#08090a] hover:opacity-90">
-              항공편 체크하기 <ArrowRight className="h-3.5 w-3.5" />
+              Check a flight <ArrowRight className="h-3.5 w-3.5" />
             </Link>
           </motion.div>
         ) : (
