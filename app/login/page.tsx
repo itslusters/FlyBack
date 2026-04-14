@@ -13,22 +13,26 @@ import type { Metadata }  from 'next'
 import { Suspense }        from 'react'
 import LoginClient         from './components/LoginClient'
 
+// Never statically prerender — auth pages must always be dynamic
+export const dynamic = 'force-dynamic'
+
 export const metadata: Metadata = {
   title: '로그인',
-  robots: { index: false },   // login page should not be indexed
+  robots: { index: false },
 }
 
 interface Props {
-  searchParams: { next?: string; error?: string }
+  // Next.js 15+: searchParams is a Promise
+  searchParams: Promise<{ next?: string; error?: string }>
 }
 
-export default function LoginPage({ searchParams }: Props) {
+export default async function LoginPage({ searchParams }: Props) {
+  const params = await searchParams
   return (
-    // Suspense boundary: LoginClient reads searchParams which is async in Next 14
     <Suspense>
       <LoginClient
-        next={searchParams.next ?? '/status'}
-        initialError={searchParams.error}
+        next={params.next ?? '/status'}
+        initialError={params.error}
       />
     </Suspense>
   )

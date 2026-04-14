@@ -1,5 +1,5 @@
 /**
- * Next.js Edge Middleware
+ * Next.js Proxy (formerly middleware.ts — renamed for Next.js 16+)
  *
  * Two jobs:
  *   1. SESSION REFRESH — calls supabase.auth.getUser() on every request so the
@@ -20,7 +20,7 @@ import { type NextRequest, NextResponse } from 'next/server'
 const PROTECTED   = ['/dashboard']
 const AUTH_ROUTES = ['/login', '/signup']
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   // Build a mutable response — cookie writes below will mutate this reference.
@@ -33,8 +33,6 @@ export async function middleware(request: NextRequest) {
       cookies: {
         get: (name) => request.cookies.get(name)?.value,
         set: (name, value, options) => {
-          // Write to both the mutated request and the outgoing response so all
-          // downstream server components see the refreshed token immediately.
           request.cookies.set({ name, value, ...options })
           response = NextResponse.next({ request: { headers: request.headers } })
           response.cookies.set({ name, value, ...options })
@@ -53,7 +51,7 @@ export async function middleware(request: NextRequest) {
 
   // ── Route guards ──────────────────────────────────────────────────────────
 
-  // Unauthenticated → protected route: redirect to login, preserve destination
+  // 미인증 → 보호 경로: 로그인 페이지로 리다이렉트
   if (!user && PROTECTED.some(p => pathname.startsWith(p))) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
@@ -61,7 +59,7 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  // Authenticated → login/signup: redirect to dashboard (already signed in)
+  // 인증됨 → 로그인/회원가입: 대시보드로 리다이렉트
   if (user && AUTH_ROUTES.some(p => pathname === p)) {
     return NextResponse.redirect(new URL('/dashboard', request.url))
   }
@@ -71,15 +69,6 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    /*
-     * Run on all routes EXCEPT:
-     *   - Next.js internals (_next/static, _next/image)
-     *   - Static assets with common extensions
-     *   - favicon.ico
-     *
-     * This broad matcher is intentional: every server-rendered route needs
-     * the session refresh so tokens stay valid across the whole app.
-     */
     '/((?!_next/static|_next/image|favicon\\.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)',
   ],
 }
