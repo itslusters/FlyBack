@@ -1,0 +1,29 @@
+@import "tailwindcss";
+
+@layer base {
+  /* Override Tailwind's font-mono utility to use Pretendard */
+  :root {
+    --font-mono: 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+
+  code, kbd, samp, pre, .font-mono {
+    font-family: 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    /* Prevent tap-highlight on mobile */
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Stable scrollbar gutter to prevent layout shift when overlays open */
+  body {
+    scrollbar-gutter: stable;
+  }
+
+  /* Date input calendar icon colour on dark backgrounds */
+  input[type='date']::-webkit-calendar-picker-indicator {
+    filter: invert(1) opacity(0.3);
+  }
+}

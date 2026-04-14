@@ -1,0 +1,6 @@
+dule.exports = {
+  plugins: {
+    tailwindcss: {},
+    autoprefixer: {},
+  },
+}
