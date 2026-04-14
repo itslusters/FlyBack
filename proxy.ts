@@ -3,15 +3,10 @@
  *
  * Two jobs:
  *   1. SESSION REFRESH — calls supabase.auth.getUser() on every request so the
- *      library can silently rotate expiring JWTs via Set-Cookie. Without this,
- *      server components see stale sessions after the JWT expires (~1 hour).
+ *      library can silently rotate expiring JWTs via Set-Cookie.
  *
  *   2. ROUTE GUARDS — redirects unauthenticated users away from protected paths,
  *      and already-authenticated users away from the login page.
- *
- * Protected paths  : /dashboard (data requires a signed-in owner)
- * Auth-only paths  : /login, /signup (skip if already signed in)
- * Public paths     : /, /flights/check (check is free, saving requires auth)
  */
 
 import { createServerClient } from '@supabase/ssr'
@@ -23,35 +18,37 @@ const AUTH_ROUTES = ['/login', '/signup']
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
 
-  // Build a mutable response — cookie writes below will mutate this reference.
-  let response = NextResponse.next({ request: { headers: request.headers } })
+  // 환경변수 없으면 Supabase 클라이언트 생성 건너뜀 (500 방지)
+  const supabaseUrl  = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseKey  = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  if (!supabaseUrl || !supabaseKey) {
+    return NextResponse.next()
+  }
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get: (name) => request.cookies.get(name)?.value,
-        set: (name, value, options) => {
-          request.cookies.set({ name, value, ...options })
-          response = NextResponse.next({ request: { headers: request.headers } })
-          response.cookies.set({ name, value, ...options })
-        },
-        remove: (name, options) => {
-          request.cookies.set({ name, value: '', ...options })
-          response = NextResponse.next({ request: { headers: request.headers } })
-          response.cookies.set({ name, value: '', ...options })
-        },
+  let response = NextResponse.next({ request })
+
+  const supabase = createServerClient(supabaseUrl, supabaseKey, {
+    cookies: {
+      // @supabase/ssr 0.5.0+ 필수 API: getAll / setAll
+      getAll() {
+        return request.cookies.getAll()
+      },
+      setAll(cookiesToSet) {
+        cookiesToSet.forEach(({ name, value }) =>
+          request.cookies.set(name, value)
+        )
+        response = NextResponse.next({ request })
+        cookiesToSet.forEach(({ name, value, options }) =>
+          response.cookies.set(name, value, options)
+        )
       },
     },
-  )
+  })
 
-  // This call is what refreshes the session — do NOT remove it.
+  // 세션 갱신 — 절대 제거 금지
   const { data: { user } } = await supabase.auth.getUser()
 
-  // ── Route guards ──────────────────────────────────────────────────────────
-
-  // 미인증 → 보호 경로: 로그인 페이지로 리다이렉트
+  // 미인증 → 보호 경로: 로그인으로 리다이렉트
   if (!user && PROTECTED.some(p => pathname.startsWith(p))) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
